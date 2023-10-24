@@ -144,11 +144,18 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
         }
     }
 
+
+    private int n;  // num elements
+    private int cap; // capacity
+    private int a, b, prime; // MAD function attributes
+    private HashEntry<K, V> [] bucket;
+    private HashEntry<K, V> AVAILABLE = new HashEntry<>(null, null);
+
     /**
      * Creates a hash table with prime factor 109345121 and capacity 1000.
      */
     protected AbstractHashTableMap() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        this(109345121, 1000);
     }
 
     /**
@@ -157,7 +164,7 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      * @param cap initial capacity
      */
     protected AbstractHashTableMap(int cap) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        this(109345121, cap);
     }
 
     /**
@@ -167,7 +174,14 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      * @param cap initial capacity
      */
     protected AbstractHashTableMap(int p, int cap) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        this.n = 0;
+        this.cap = cap;
+        this.prime = p;
+        Random rand = new Random();
+        this.a = rand.nextInt(prime-1)+1;
+        this.b = rand.nextInt(prime);
+        
+        this.bucket = new HashEntry[this.cap];
     }
 
     /**
@@ -177,7 +191,7 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public int size() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return this.n;
     }
 
     /**
@@ -187,7 +201,7 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public boolean isEmpty() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return n == 0;
     }
 
     /**
@@ -197,7 +211,8 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      * @return
      */
     protected int hashCode(K key) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        int k =  key.hashCode();
+        return ((a*k + b) % prime);
     }
 
     /**
@@ -208,7 +223,8 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      * @return
      */
     protected int hashValue(K key) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        int x = hashCode(key);
+        return Math.abs(x) % this.cap;
     }
 
     abstract protected int offset(int hashKey, int p);
@@ -221,7 +237,18 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public V get(K key) throws IllegalStateException {
-       throw new UnsupportedOperationException("Not yet implemented");
+       int index = hashCode(key);
+       final int endIndex = index;
+       do {
+           HashEntry<K, V> auxEntry = this.bucket[index];
+           if (auxEntry == null) {
+               return null;
+           } else if (auxEntry.getKey().equals(key)) {
+               return auxEntry.getValue();
+           }
+           index = (index +1) % this.cap;
+       }while(index == endIndex);
+       return null;
     }
 
     /**
@@ -233,7 +260,19 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public V put(K key, V value) throws IllegalStateException {
-       throw new UnsupportedOperationException("Not yet implemented");
+        throw new UnsupportedOperationException("Not yet implemented");
+//        int index = hashCode(key);
+//        final int endIndex = index;
+//        V oldValue = null;
+//        do{
+//            if (this.bucket[index] == null || this.bucket[index].equals(AVAILABLE)){
+//                this.bucket[index] = new HashEntry<K, V>(key, value);
+//                return oldValue;
+//            }
+//            else{
+//                index = (index + 1) % this.cap;
+//            }
+//        }while(index == endIndex);
     }
 
     /**
