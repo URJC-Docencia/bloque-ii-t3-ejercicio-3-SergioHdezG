@@ -66,8 +66,8 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
                 return false;
             }
             
-            if ((ent.getKey() == null && this.key==null) && (ent.getValue() == null && this.value==null)){
-                return true;
+            if (ent.getKey()==null && ent.getValue()==null){
+                return this.key==null && this.value==null;
             }
             return ent.getKey().equals(this.key) && ent.getValue().equals(this.value);
         }
@@ -96,9 +96,10 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
         }
 
         private void goToNextElement(int start) {
-            while (start <= this.b.length &&  (this.b[start] == null || this.b[start] == AVAILABLE)){
+            while (start < this.b.length &&  (this.b[start] == null || this.b[start] == AVAILABLE)){
                 start++;
             }
+            this.pos = start;
         }
 
         @Override
@@ -109,7 +110,7 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
         @Override
         public Entry<T, U> next() {
             Entry<T, U> auxEntry = this.b[this.pos];
-            goToNextElement(this.pos++);
+            goToNextElement(this.pos+1);
             return auxEntry;
         }
 
@@ -264,7 +265,7 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
            HashEntry<K, V> auxEntry = this.bucket[index];
            if (auxEntry == null) {
                return null;
-           } else if (auxEntry.getKey().equals(key)) {
+           } else if (!auxEntry.equals(AVAILABLE) && auxEntry.getKey().equals(key)) {
                return auxEntry.getValue();
            }
            index = (index + offset(hashCode(key), index)) % this.cap;
@@ -414,12 +415,14 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
         Random rand = new Random();
         this.a = rand.nextInt(prime-1)+1;
         this.b = rand.nextInt(prime);
+        int n_entries = this.n;
 
         for (HashEntry<K, V> auxEntry : oldBucket){
             if (auxEntry != null && !auxEntry.equals(AVAILABLE)){
                 this.put(auxEntry.key, auxEntry.value);
             }
         }
+        this.n = n_entries;  // put method will modify this.n, so we restore it to its original value
     }
 
 }

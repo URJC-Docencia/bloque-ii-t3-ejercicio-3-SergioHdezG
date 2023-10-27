@@ -205,14 +205,6 @@ public class HashTableMapLPTest {
      */
     @Test
     public void testRehash() {
-        System.out.println("entries");
-        instance = new HashTableMapLP<>();
-        instance.put("912127658B", "Angel");
-        instance.put("912127659A", "Jose");
-        instance.put("912127624G", "Andres");
-
-        instance.rehash(100);
-
         System.out.println("rehash");
 
         HashTableMapLP<Integer,Integer> listin1 = new HashTableMapLP<>(10);
@@ -225,10 +217,4 @@ public class HashTableMapLPTest {
         assertEquals(listin1.size(), NUM_ENTRIES);
         
     }
-
-    @Test
-    public void testRehas2(){
-
-    }
-    
 }
