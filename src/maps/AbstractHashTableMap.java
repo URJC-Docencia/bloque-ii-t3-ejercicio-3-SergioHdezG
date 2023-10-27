@@ -1,5 +1,7 @@
 package maps;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.Random;
 
@@ -63,8 +65,11 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
             } catch (ClassCastException ex) {
                 return false;
             }
-            return (ent.getKey().equals(this.key))
-                    && (ent.getValue().equals(this.value));
+            
+            if ((ent.getKey() == null && this.key==null) && (ent.getValue() == null && this.value==null)){
+                return true;
+            }
+            return ent.getKey().equals(this.key) && ent.getValue().equals(this.value);
         }
 
         /**
@@ -78,22 +83,34 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
 
     private class HashTableMapIterator<T, U> implements Iterator<Entry<T, U>> {
 
+        private int pos;
+        private Entry<T, U> av;
+        private HashEntry<T, U> [] b;
         public HashTableMapIterator(HashEntry<T, U>[] b, Entry<T, U> av, int numElems) {
-            throw new UnsupportedOperationException("Not yet implemented");
+            this.pos = 0;
+            this.av = av;
+            this.b = b;
+
+            goToNextElement(this.pos);
+
         }
 
         private void goToNextElement(int start) {
-            throw new UnsupportedOperationException("Not yet implemented");
+            while (start <= this.b.length &&  (this.b[start] == null || this.b[start] == AVAILABLE)){
+                start++;
+            }
         }
 
         @Override
         public boolean hasNext() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            return this.pos < this.b.length;
         }
 
         @Override
         public Entry<T, U> next() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            Entry<T, U> auxEntry = this.b[this.pos];
+            goToNextElement(this.pos++);
+            return auxEntry;
         }
 
         @Override
@@ -103,18 +120,19 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
     }
 
     private class HashTableMapKeyIterator<T, U> implements Iterator<T> {
+        HashTableMapIterator<T, U> it;
         public HashTableMapKeyIterator(HashTableMapIterator<T, U> it) {
-            throw new UnsupportedOperationException("Not yet implemented");
+            this.it = it;
         }
 
         @Override
         public T next() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            return this.it.next().getKey();
         }
 
         @Override
         public boolean hasNext() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            return this.it.hasNext();
         }
 
         @Override
@@ -124,18 +142,19 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
     }
 
     private class HashTableMapValueIterator<T, U> implements Iterator<U> {
+        HashTableMapIterator<T, U> it;
         public HashTableMapValueIterator(HashTableMapIterator<T, U> it) {
-            throw new UnsupportedOperationException("Not yet implemented");
+            this.it = it;
         }
 
         @Override
         public U next() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            return this.it.next().getValue();
         }
 
         @Override
         public boolean hasNext() {
-            throw new UnsupportedOperationException("Not yet implemented");
+            return this.it.hasNext();
         }
 
         @Override
@@ -237,7 +256,9 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public V get(K key) throws IllegalStateException {
-       int index = hashCode(key);
+        this.checkKey(key);
+        
+       int index = hashValue(key);
        final int endIndex = index;
        do {
            HashEntry<K, V> auxEntry = this.bucket[index];
@@ -246,8 +267,8 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
            } else if (auxEntry.getKey().equals(key)) {
                return auxEntry.getValue();
            }
-           index = (index +1) % this.cap;
-       }while(index == endIndex);
+           index = (index + offset(hashCode(key), index)) % this.cap;
+       }while(index != endIndex);
        return null;
     }
 
@@ -260,19 +281,31 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public V put(K key, V value) throws IllegalStateException {
-        throw new UnsupportedOperationException("Not yet implemented");
-//        int index = hashCode(key);
-//        final int endIndex = index;
-//        V oldValue = null;
-//        do{
-//            if (this.bucket[index] == null || this.bucket[index].equals(AVAILABLE)){
-//                this.bucket[index] = new HashEntry<K, V>(key, value);
-//                return oldValue;
-//            }
-//            else{
-//                index = (index + 1) % this.cap;
-//            }
-//        }while(index == endIndex);
+        this.checkKey(key);
+        
+        int index = hashValue(key);
+        final int endIndex = index;
+
+        if (this.n == this.cap){
+            rehash((int) ((int)this.cap * 1.5));
+        }
+
+        do{
+            if (this.bucket[index] == null || this.bucket[index].equals(AVAILABLE)){
+                this.bucket[index] = new HashEntry<K, V>(key, value);
+                this.n++;
+                return null;
+            }
+            else if(this.bucket[index].getKey().equals(key)){
+                V oldValue = this.bucket[index].getValue();
+                this.bucket[index].setValue(value);
+                return oldValue;
+            }
+            else{
+                index = (index + offset(hashCode(key), index)) % this.cap;
+            }
+        }while(index != endIndex);
+        return null;
     }
 
     /**
@@ -283,13 +316,31 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public V remove(K key) throws IllegalStateException {
-        throw new UnsupportedOperationException("Not yet implemented");
+        this.checkKey(key);
+        
+        int index = hashValue(key);
+        final int endIndex = index;
+
+        do {
+            if (this.bucket[index] == null){
+                return null;
+            }
+            else if (this.bucket[index].getKey().equals(key)){
+                V oldValue = this.bucket[index].getValue();
+                this.bucket[index] = AVAILABLE;
+                this.n--;
+                return oldValue;
+            }
+            else if(this.bucket[index].equals(AVAILABLE) || !this.bucket[index].getKey().equals(key)){
+                index = (index + offset(hashCode(key), index)) % this.cap;
+            }
+        }while (index != endIndex);
+        return null;
     }
 
     @Override
     public Iterator<Entry<K, V>> iterator() {
-        throw new UnsupportedOperationException("Not yet implemented");
-
+        return new HashTableMapIterator<>(this.bucket, this.AVAILABLE, this.n);
     }
 
     /**
@@ -299,7 +350,12 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public Iterable<K> keys() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return new Iterable<K>() {
+            @Override
+            public Iterator<K> iterator() {
+                return new HashTableMapKeyIterator<>(new  HashTableMapIterator<>(bucket, AVAILABLE, n));
+            }
+        };
     }
 
     /**
@@ -309,7 +365,12 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public Iterable<V> values() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return new Iterable<V>() {
+            @Override
+            public Iterator<V> iterator() {
+                return new HashTableMapValueIterator<>(new  HashTableMapIterator<>(bucket, AVAILABLE, n));
+            }
+        };
     }
 
     /**
@@ -319,7 +380,12 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      */
     @Override
     public Iterable<Entry<K, V>> entries() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return new Iterable<Entry<K, V>>() {
+            @Override
+            public Iterator<Entry<K, V>> iterator() {
+                return new HashTableMapIterator<>(bucket, AVAILABLE, n);
+            }
+        };
     }
 
     /**
@@ -338,11 +404,22 @@ abstract public class AbstractHashTableMap<K, V> implements Map<K, V> {
      * Doubles the size of the hash table and rehashes all the entries.
      */
     protected void rehash() {
-        throw new UnsupportedOperationException("Not yet implemented");
+        rehash(this.cap * 2);
     }
 
     protected void rehash(int newcap) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        HashEntry<K, V>[] oldBucket = this.bucket;
+        this.cap = newcap;
+        this.bucket = new HashEntry[newcap];
+        Random rand = new Random();
+        this.a = rand.nextInt(prime-1)+1;
+        this.b = rand.nextInt(prime);
+
+        for (HashEntry<K, V> auxEntry : oldBucket){
+            if (auxEntry != null && !auxEntry.equals(AVAILABLE)){
+                this.put(auxEntry.key, auxEntry.value);
+            }
+        }
     }
 
 }
