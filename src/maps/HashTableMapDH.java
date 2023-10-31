@@ -6,7 +6,8 @@ package maps;
  */
 public class HashTableMapDH<K, V> extends AbstractHashTableMap<K, V> {
 
-    
+    private int q = 101;
+
     public HashTableMapDH(int size) {
         super(size);
     }
@@ -19,8 +20,11 @@ public class HashTableMapDH<K, V> extends AbstractHashTableMap<K, V> {
         super(p, cap);
     }
 
+    private int secondHash(int k){
+        return this.q - (k % q);
+    }
     @Override
     protected int offset(int hashKey, int p) {
-       throw new UnsupportedOperationException("Not yet implemented");
+        return p * secondHash(hashKey);
     }
 }

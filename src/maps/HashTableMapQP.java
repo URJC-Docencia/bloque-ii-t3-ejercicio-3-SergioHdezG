@@ -5,6 +5,8 @@ package maps;
      */
 public class HashTableMapQP<K, V> extends AbstractHashTableMap<K, V> {
 
+    private int c1 = 1;
+    private int c2 = 1;
     public HashTableMapQP(int size) {
         super(size);
     }
@@ -19,7 +21,8 @@ public class HashTableMapQP<K, V> extends AbstractHashTableMap<K, V> {
 
     @Override
     protected int offset(int hashKey, int i) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        return c1*i + c2*i*i;
+
     }
 
 }
